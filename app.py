@@ -5,6 +5,18 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+requirements.txt
+streamlit
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+openpyxl
+pip install matplotlib
+pip install streamlit pandas numpy seaborn scikit-learn openpyxl
+
+
 # Page configuration
 st.set_page_config(page_title="Customer Personality Clustering", layout="wide")
 
