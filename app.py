@@ -5,80 +5,79 @@ import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-requirements.txt
-streamlit
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-openpyxl
-
-# Page configuration
-st.set_page_config(page_title="Customer Personality Clustering", layout="wide")
-
 # App title
-st.title("Customer Personality Analysis - Clustering App")
+st.title("🧑\u200d🤝\u200d🧑 Customer Personality Analysis - Clustering App")
 
 # Load clustering model
-with open("DBSCAN.pkl", "rb") as file:
+with open("hierarchical.pkl", "rb") as file:
     model = pickle.load(file)
 
 # Load scaler
-with open("scaler (2).pkl", "rb") as file:
+with open("scaler.pkl", "rb") as file:
     scaler = pickle.load(file)
 
-# File uploader
-uploaded_file = st.file_uploader('marketing_campaign.xlsx', type=["xlsx"])
+# Upload CSV file
+data_file = st.file_uploader("Upload Customer Data CSV", type=["csv"])
 
-if uploaded_file is not None:
-    st.success("File uploaded successfully!")
+if data_file is not None:
+    df = pd.read_csv(data_file)
 
-    # Read Excel file
-    data = pd.read_excel(uploaded_file)
-    st.subheader("Preview of Uploaded Data")
-    st.dataframe(data.head())
+    # Feature engineering
+    df['Age'] = 2025 - df['Year_Birth']
+    df['Loyalty_Months'] = pd.to_datetime("2025-01-01") - pd.to_datetime(df['Dt_Customer'])
+    df['Loyalty_Months'] = df['Loyalty_Months'].dt.days // 30
+    
+    df['Total_Spend'] = df[['MntWines', 'MntFruits', 'MntMeatProducts',
+                            'MntFishProducts', 'MntSweetProducts', 'MntGoldProds']].sum(axis=1)
 
-    # Keep a copy of original data
-    original_data = data.copy()
+    df['Total_Accepted_Campaigns'] = df[['AcceptedCmp1', 'AcceptedCmp2', 'AcceptedCmp3',
+                                         'AcceptedCmp4', 'AcceptedCmp5']].sum(axis=1)
 
-    # Drop 'Income' if it exists
-    data_processed = data.drop(columns=['Income'], errors='ignore')
+    # Map education to ordinal values
+    education_order = {
+        'Basic': 0,
+        '2n Cycle': 1,
+        'Graduation': 2,
+        'Master': 3,
+        'PhD': 4
+    }
+    df['Education'] = df['Education'].map(education_order)
 
-    # Scale the data
-    data_scaled = scaler.transform(data_processed)
+    # Transform Marital_Status
+    df['Marital_Status'] = df['Marital_Status'].apply(lambda x: 0 if x in ['Married', 'Together'] else 1)
 
-    # Predict clusters using DBSCAN (fit_predict, since DBSCAN doesn't have predict)
-    clusters = model.fit_predict(data_scaled)
+    # Selected features for clustering
+    features = [
+        'Education', 'Marital_Status', 'Income', 'Kidhome', 'Teenhome', 'Recency',
+        'NumDealsPurchases', 'NumWebPurchases', 'NumCatalogPurchases',
+        'NumStorePurchases', 'NumWebVisitsMonth', 'Complain',
+        'Z_CostContact', 'Z_Revenue', 'Response',
+        'Loyalty_Months', 'Age', 'Total_Spend', 'Total_Accepted_Campaigns'
+    ]
 
-    # Add cluster labels to data
-    original_data['Cluster'] = clusters
+    X = df[features]
 
-    st.subheader("Clustered Customer Data")
-    st.dataframe(original_data)
+    # Apply scaling
+    X_scaled = scaler.transform(X)
 
-    # Cluster distribution
+    # Predict clusters
+    clusters = model.fit_predict(X_scaled)
+    df['Cluster'] = clusters
+
+    # Display data with clusters
+    st.subheader("Clustered Data")
+    st.write(df[['ID', 'Cluster'] + features])
+
+    # Visualize cluster distribution
     st.subheader("Cluster Distribution")
-    cluster_counts = original_data['Cluster'].value_counts().sort_index()
+    cluster_counts = df['Cluster'].value_counts().sort_index()
     st.bar_chart(cluster_counts)
 
-    # Spending pattern by cluster
-    st.subheader("Average Spending on Products per Cluster")
-    mnt_cols = ['MntWines', 'MntFruits', 'MntMeatProducts', 
-                'MntFishProducts', 'MntSweetProducts', 'MntGoldProds']
-
-    if all(col in original_data.columns for col in mnt_cols):
-        cluster_means = original_data.groupby('Cluster')[mnt_cols].mean()
-        st.dataframe(cluster_means)
-
-        # Visualizing using heatmap
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.heatmap(cluster_means, annot=True, fmt=".1f", cmap="YlGnBu", ax=ax)
-        plt.ylabel("Cluster")
-        plt.xlabel("Product Categories")
-        st.pyplot(fig)
-    else:
-        st.error("❌ Required spending columns not found in the uploaded data.")
-
-else:
-    st.info("marketing_campaign.xlsx")
+    # Download option
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download Clustered Data as CSV",
+        data=csv,
+        file_name='clustered_customers.csv',
+        mime='text/csv',
+    )
