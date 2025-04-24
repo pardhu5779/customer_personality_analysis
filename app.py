@@ -18,7 +18,7 @@ openpyxl
 st.set_page_config(page_title="Customer Personality Clustering", layout="wide")
 
 # App title
-st.title("🧑‍🤝‍🧑 Customer Personality Analysis - Clustering App")
+st.title("Customer Personality Analysis - Clustering App")
 
 # Load clustering model
 with open("DBSCAN.pkl", "rb") as file:
@@ -32,11 +32,11 @@ with open("scaler (2).pkl", "rb") as file:
 uploaded_file = st.file_uploader('marketing_campaign.xlsx', type=["xlsx"])
 
 if uploaded_file is not None:
-    st.success("✅ File uploaded successfully!")
+    st.success("File uploaded successfully!")
 
     # Read Excel file
     data = pd.read_excel(uploaded_file)
-    st.subheader("📊 Preview of Uploaded Data")
+    st.subheader("Preview of Uploaded Data")
     st.dataframe(data.head())
 
     # Keep a copy of original data
@@ -54,16 +54,16 @@ if uploaded_file is not None:
     # Add cluster labels to data
     original_data['Cluster'] = clusters
 
-    st.subheader("🔍 Clustered Customer Data")
+    st.subheader("Clustered Customer Data")
     st.dataframe(original_data)
 
     # Cluster distribution
-    st.subheader("📈 Cluster Distribution")
+    st.subheader("Cluster Distribution")
     cluster_counts = original_data['Cluster'].value_counts().sort_index()
     st.bar_chart(cluster_counts)
 
     # Spending pattern by cluster
-    st.subheader("💸 Average Spending on Products per Cluster")
+    st.subheader("Average Spending on Products per Cluster")
     mnt_cols = ['MntWines', 'MntFruits', 'MntMeatProducts', 
                 'MntFishProducts', 'MntSweetProducts', 'MntGoldProds']
 
